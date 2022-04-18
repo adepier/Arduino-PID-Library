@@ -5,13 +5,9 @@
  * This Library is licensed under the MIT License
  **********************************************************************************************/
 
-#if ARDUINO >= 100
-  #include "Arduino.h"
-#else
-  #include "WProgram.h"
-#endif
 
-#include <PID_v1.h>
+#include "PID_v1.h"
+#include "mbed.h"
 
 /*Constructor (...)*********************************************************
  *    The parameters specified here are those for for which we can't set up
@@ -32,23 +28,16 @@ PID::PID(double* Input, double* Output, double* Setpoint,
 
     PID::SetControllerDirection(ControllerDirection);
     PID::SetTunings(Kp, Ki, Kd, POn);
+   
+   timer.start();
 
-    lastTime = millis()-SampleTime;
+    lastTime = timer.elapsed_time().count()-SampleTime;
 }
-
-/*Constructor (...)*********************************************************
- *    To allow backwards compatability for v1.1, or for people that just want
- *    to use Proportional on Error without explicitly saying so
- ***************************************************************************/
-
-PID::PID(double* Input, double* Output, double* Setpoint,
-        double Kp, double Ki, double Kd, int ControllerDirection)
-    :PID::PID(Input, Output, Setpoint, Kp, Ki, Kd, P_ON_E, ControllerDirection)
-{
-
-}
-
-
+ 
+bool PID::Compute(bool restart) {
+   if(restart) outputSum = 0;
+   return Compute();
+}  
 /* Compute() **********************************************************************
  *     This, as they say, is where the magic happens.  this function should be called
  *   every time "void loop()" executes.  the function will decide for itself whether a new
@@ -58,7 +47,7 @@ PID::PID(double* Input, double* Output, double* Setpoint,
 bool PID::Compute()
 {
    if(!inAuto) return false;
-   unsigned long now = millis();
+   unsigned long now = timer.elapsed_time().count();
    unsigned long timeChange = (now - lastTime);
    if(timeChange>=SampleTime)
    {
@@ -221,4 +210,3 @@ double PID::GetKi(){ return  dispKi;}
 double PID::GetKd(){ return  dispKd;}
 int PID::GetMode(){ return  inAuto ? AUTOMATIC : MANUAL;}
 int PID::GetDirection(){ return controllerDirection;}
-
